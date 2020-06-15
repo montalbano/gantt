@@ -3,6 +3,7 @@ var send = require('send');
 var express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path');
+const router = express.Router();
 var Promise = require('bluebird');
 require("date-format-lite");
 
@@ -17,6 +18,8 @@ var db = mysql.createPool({
 	database: 'gantt'
 });
 
+app.use("/gantt", router);
+
 app.use("/gantt", express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -24,7 +27,7 @@ app.listen(port, function () {
 	console.log("Server is running on port " + port + "...");
 });
 
-app.get("/data", function (req, res) {
+router.get("/data", function (req, res) {
 	Promise.all([
 		db.query("SELECT * FROM gantt_tasks ORDER BY sortorder ASC"),
 		db.query("SELECT * FROM gantt_links")
@@ -47,7 +50,7 @@ app.get("/data", function (req, res) {
 	});
 });
 
-app.get("/data/clear", function (req, res) {
+router.get("/data/clear", function (req, res) {
 
 	db.query("TRUNCATE TABLE gantt_links")
 		.then(function (result) { 
@@ -65,7 +68,7 @@ app.get("/data/clear", function (req, res) {
 
 
 // add new task
-app.post("/data/task", function (req, res) { // adds new task to database
+router.post("/data/task", function (req, res) { // adds new task to database
 	var task = getTask(req.body);
 
 
@@ -84,7 +87,7 @@ app.post("/data/task", function (req, res) { // adds new task to database
 });
 
 // update task
-app.put("/data/task/:id", function (req, res) {
+router.put("/data/task/:id", function (req, res) {
 	var sid = req.params.id,
 		target = req.body.target,
 		task = getTask(req.body);
@@ -133,7 +136,7 @@ function updateOrder(taskId, target) {
 }
 
 // delete task
-app.delete("/data/task/:id", function (req, res) {
+router.delete("/data/task/:id", function (req, res) {
 	var sid = req.params.id;
 	db.query("DELETE FROM gantt_tasks WHERE id = ?", [sid])
 		.then(function (result) {
@@ -145,7 +148,7 @@ app.delete("/data/task/:id", function (req, res) {
 });
 
 // add link
-app.post("/data/link", function (req, res) {
+router.post("/data/link", function (req, res) {
 	var link = getLink(req.body);
 
 	db.query("INSERT INTO gantt_links(source, target, type) VALUES (?,?,?)",
@@ -159,7 +162,7 @@ app.post("/data/link", function (req, res) {
 });
 
 // update link
-app.put("/data/link/:id", function (req, res) {
+router.put("/data/link/:id", function (req, res) {
 	var sid = req.params.id,
 		link = getLink(req.body);
 
@@ -174,7 +177,7 @@ app.put("/data/link/:id", function (req, res) {
 });
 
 // delete link
-app.delete("/data/link/:id", function (req, res) {
+router.delete("/data/link/:id", function (req, res) {
 	var sid = req.params.id;
 	db.query("DELETE FROM gantt_links WHERE id = ?",
 		[sid])
@@ -186,7 +189,7 @@ app.delete("/data/link/:id", function (req, res) {
 		});
 });
 
-app.get('/configure', (req, res, next) => {
+router.get('/configure', (req, res, next) => {
       send(req, 'public/configure.html').pipe(res);
   });
 

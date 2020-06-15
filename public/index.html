@@ -147,9 +147,9 @@
 
 	gantt.config.grid_width = 1000;
 	gantt.init("gantt_here", new Date(2020, 3, 1), new Date(2020, 11, 32));
-	gantt.load("/data");
+	gantt.load("data");
 
-	var dp = new gantt.dataProcessor("/data");
+	var dp = new gantt.dataProcessor("data");
 	dp.init(gantt);
 	dp.setTransactionMode("REST");
 	
@@ -177,14 +177,14 @@
 
 					$.ajax({
 						type: "GET",
-						url: "/data/clear",
+						url: "data/clear",
 						
 						success: function(data){
 							for (var i = 0; i < project.data.data.length; i++) {
 						
 								$.ajax({
 									type: "POST",
-									url: "/data/task",
+									url: "data/task",
 									data: project.data.data[i],
 									success: function(data){
 										
@@ -197,7 +197,7 @@
 						
 								$.ajax({
 									type: "POST",
-									url: "/data/link",
+									url: "data/link",
 									data: project.data.links[i],
 									success: function(data){
 										location.reload(); 
