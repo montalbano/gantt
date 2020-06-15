@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+	<script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+	<script src="https://export.dhtmlx.com/gantt/api.js?v=7.0.4"></script>
+	<script src="https://docs.dhtmlx.com/gantt/samples/common/snippets/dhx_file_dnd.js?v=7.0.4"></script>
+	<link href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" rel="stylesheet">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://docs.dhtmlx.com/gantt/codebase/skins/dhtmlxgantt_broadway.css?v=7.0.4">
+
+	<style type="text/css">
+		html, body{
+			height:100%;
+			padding:0px;
+			margin:0px;
+			overflow: hidden;
+			background: lightgrey;
+		}
+		form {
+			text-align: center;
+			padding: 10px;
+		}
+		input[type=file]{
+			border: 1px solid black;
+		}
+	</style>
+</head>
+
+<body>
+
+	<form id="mspImport" action="" method="POST" enctype="multipart/form-data">
+		<input type="file" class="custom-file-input" id="mspFile" name="file"
+			   accept=".mpp,.xml, text/xml, application/xml, application/vnd.ms-project, application/msproj, application/msproject, application/x-msproject, application/x-ms-project, application/x-dos_ms_project, application/mpp, zz-application/zz-winassoc-mpp"/>
+		<button id="mspImportBtn" type="submit">Carica</button>
+	</form>
+
+
+<div id="gantt_here" style='width:100%; height: calc(100vh - 42px);'></div>
+<script type="text/javascript">
+	gantt.config.xml_date = "%Y-%m-%d %H:%i:%s";
+
+	gantt.config.order_branch = true;/*!*/
+	gantt.config.order_branch_free = true;/*!*/
+
+	
+
+
+	var hourToStr = gantt.date.date_to_str("%H:%i");
+	var hourRangeFormat = function(step){
+		return function(date){
+			var intervalEnd = new Date(gantt.date.add(date, step, "hour") - 1)
+			return hourToStr(date) + " - " + hourToStr(intervalEnd);
+		};
+	};
+    gantt.config.layout = {
+			css: "gantt_container",
+			cols: [
+				{
+					width:400,
+					min_width: 300,
+					rows:[
+						{view: "grid", scrollX: "gridScroll", scrollable: true, scrollY: "scrollVer"},
+						{view: "scrollbar", id: "gridScroll", group:"horizontal"}
+					]
+				},
+				{resizer: true, width: 1},
+				{
+					rows:[
+						{view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer"},
+						{view: "scrollbar", id: "scrollHor", group:"horizontal"}
+					]
+				},
+				{view: "scrollbar", id: "scrollVer"}
+			]
+		};
+
+	gantt.config.min_column_width = 100;
+	var zoomConfig = {
+		minColumnWidth: 80,
+		maxColumnWidth: 150,
+		levels: [
+			[
+				{ unit: "year", format: "%Y", step: 1},
+				{ unit: "month", format: "%M %Y", step: 1}
+			],
+			[
+				{ unit: "month", format: "%M %Y", step: 1},
+				{ unit: "week", step: 1, format: function (date) {
+						var dateToStr = gantt.date.date_to_str("%d %M");
+						var endDate = gantt.date.add(date, -6, "day");
+						var weekNum = gantt.date.date_to_str("%W")(date);
+						return "Week #" + weekNum + ", " + dateToStr(date) + " - " + dateToStr(endDate);
+					}}
+			],
+			[
+				{ unit: "month", format: "%M %Y", step: 1},
+				{ unit: "day", format: "%d %M", step: 1}
+			],
+			[
+				{ unit: "day", format: "%d %M", step: 1},
+				{ unit: "hour", format: hourRangeFormat(12), step: 12}
+			],
+			[
+				{unit: "day", format: "%d %M",step: 1},
+				{unit: "hour",format: hourRangeFormat(6),step: 6}
+			],
+			[
+				{ unit: "day", format: "%d %M", step: 1 },
+				{ unit: "hour", format: "%H:%i", step: 1}
+			]
+		],
+		startDate: new Date(2020, 3, 1),
+		endDate: new Date(2020, 11, 32),
+		useKey: "ctrlKey",
+		trigger: "wheel",
+		element: function(){
+			return gantt.$root.querySelector(".gantt_task");
+		}
+	}
+
+	gantt.ext.zoom.init(zoomConfig);
+
+	gantt.config.readonly = true;
+
+	gantt.config.columns =  [
+     {name:"text",       label:"Task name",  tree:true, width:300 },
+     {name:"start_date", label:"Start time", align:"center" },
+     {name:"duration",   label:"Duration",   align:"center", width:80 },
+     {name:"progress",   label:"Progress",   align:"center", width:80 }
+ ];
+
+    gantt.plugins({
+        tooltip: true
+    });
+
+	gantt.templates.tooltip_text = function(start,end,task){
+		return "<b>Task:</b> "+task.text+"<br/><b>Duration:</b> " + task.duration;
+	};
+/*
+	gantt.attachEvent("onTaskDblClick", function(id,e){
+		//any custom logic here
+		return false;
+	});
+*/
+
+
+	gantt.config.grid_width = 1000;
+	gantt.init("gantt_here", new Date(2020, 3, 1), new Date(2020, 11, 32));
+	gantt.load("/data");
+
+	var dp = new gantt.dataProcessor("/data");
+	dp.init(gantt);
+	dp.setTransactionMode("REST");
+	
+
+	var fileDnD = fileDragAndDrop();
+	fileDnD.init(gantt.$container);
+
+	function sendFile(file) {
+		fileDnD.showUpload();
+		upload(file, function () {
+			fileDnD.hideOverlay();
+		})
+	}
+
+	function upload(file, callback) {
+		gantt.importFromMSProject({
+			data: file,
+			callback: function (project) {
+				if (project) {
+					gantt.clearAll();
+
+					if (project.config.duration_unit) {
+						gantt.config.duration_unit = project.config.duration_unit;
+					}
+
+					$.ajax({
+						type: "GET",
+						url: "/data/clear",
+						
+						success: function(data){
+							for (var i = 0; i < project.data.data.length; i++) {
+						
+								$.ajax({
+									type: "POST",
+									url: "/data/task",
+									data: project.data.data[i],
+									success: function(data){
+										
+
+									}
+								});
+							}
+
+							for (var i = 0; i < project.data.links.length; i++) {
+						
+								$.ajax({
+									type: "POST",
+									url: "/data/link",
+									data: project.data.links[i],
+									success: function(data){
+										location.reload(); 
+									}
+								});
+							}
+						}
+					});
+
+				}
+
+				if (callback)
+					callback(project);
+			}
+		});
+	}
+
+	fileDnD.onDrop(sendFile);
+	var form = document.getElementById("mspImport");
+	form.onsubmit = function (event) {
+		event.preventDefault();
+		var fileInput = document.getElementById("mspFile");
+		if (fileInput.files[0])
+			sendFile(fileInput.files[0]);
+	};
+
+
+	var scroll_state, click, original_mouse_position;
+	var timeline_area = document.getElementsByClassName("gantt_task_bg")[0]
+	
+
+	timeline_area.onmousedown = function(event){
+		click = true;
+		scroll_state = gantt.getScrollState().x;
+		original_mouse_position = event.clientX;
+	}
+
+
+	window.onmouseup = function(event){
+		click = false;
+	}
+
+	gantt.attachEvent("onMouseMove", function (id, e){
+		var scroll_value = scroll_state + original_mouse_position - e.clientX
+		if (click) { gantt.scrollTo(scroll_value, null);
+		}
+	});
+</script>
+</body>
