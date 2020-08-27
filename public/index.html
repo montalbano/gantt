@@ -43,7 +43,7 @@
 	gantt.config.order_branch = true;/*!*/
 	gantt.config.order_branch_free = true;/*!*/
 
-	
+
 
 
 	var hourToStr = gantt.date.date_to_str("%H:%i");
@@ -152,7 +152,7 @@
 	var dp = new gantt.dataProcessor("data");
 	dp.init(gantt);
 	dp.setTransactionMode("REST");
-	
+
 
 	var fileDnD = fileDragAndDrop();
 	fileDnD.init(gantt.$container);
@@ -178,29 +178,29 @@
 					$.ajax({
 						type: "GET",
 						url: "data/clear",
-						
+
 						success: function(data){
 							for (var i = 0; i < project.data.data.length; i++) {
-						
+
 								$.ajax({
 									type: "POST",
 									url: "data/task",
 									data: project.data.data[i],
 									success: function(data){
-										
+
 
 									}
 								});
 							}
 
 							for (var i = 0; i < project.data.links.length; i++) {
-						
+
 								$.ajax({
 									type: "POST",
 									url: "data/link",
 									data: project.data.links[i],
 									success: function(data){
-										location.reload(); 
+										location.reload();
 									}
 								});
 							}
@@ -227,7 +227,7 @@
 
 	var scroll_state, click, original_mouse_position;
 	var timeline_area = document.getElementsByClassName("gantt_task_bg")[0]
-	
+
 
 	timeline_area.onmousedown = function(event){
 		click = true;

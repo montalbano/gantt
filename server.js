@@ -21,7 +21,14 @@ var db = mysql.createPool({
 app.use("/gantt", router);
 
 app.use("/gantt", express.static(path.join(__dirname, "public")));
-app.use(bodyParser.urlencoded({extended: true}));
+//app.use(bodyParser.urlencoded({extended: true}));
+//app.use(bodyParser.json());
+
+// create application/json parser
+//var jsonParser = bodyParser.json()
+
+// create application/x-www-form-urlencoded parser
+var urlencodedParser = bodyParser.urlencoded({ extended: false })
 
 app.listen(port, function () {
 	console.log("Server is running on port " + port + "...");
@@ -53,27 +60,27 @@ router.get("/data", function (req, res) {
 router.get("/data/clear", function (req, res) {
 
 	db.query("TRUNCATE TABLE gantt_links")
-		.then(function (result) { 
+		.then(function (result) {
 
 			db.query("TRUNCATE TABLE gantt_tasks")
-			.then(function (result) { 
+			.then(function (result) {
 				sendResponse(res, "cancelled");
 		});
 
 	});
 
-	
+
 
 });
 
 
 // add new task
-router.post("/data/task", function (req, res) { // adds new task to database
+router.post("/data/task", urlencodedParser, function (req, res) { // adds new task to database
 	var task = getTask(req.body);
 
 
 	db.query("SELECT MAX(sortorder) AS maxOrder FROM gantt_tasks")
-		.then(function (result) { 
+		.then(function (result) {
 			var orderIndex = (result[0].maxOrder || 0) + 1;
 			return db.query("INSERT INTO gantt_tasks(id, text, start_date, duration, progress, parent, sortorder) VALUES (?,?,?,?,?,?,?)",
 				[task.id, task.text, task.start_date, task.duration, task.progress, task.parent, orderIndex]);
@@ -148,7 +155,7 @@ router.delete("/data/task/:id", function (req, res) {
 });
 
 // add link
-router.post("/data/link", function (req, res) {
+router.post("/data/link", urlencodedParser, function (req, res) {
 	var link = getLink(req.body);
 
 	db.query("INSERT INTO gantt_links(source, target, type) VALUES (?,?,?)",
