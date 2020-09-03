@@ -8,6 +8,8 @@
 	<link href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" rel="stylesheet">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="https://docs.dhtmlx.com/gantt/codebase/skins/dhtmlxgantt_broadway.css?v=7.0.4">
+	<script src="https://export.dhtmlx.com/gantt/api.js?v=7.0.9"></script>
+
 
 	<style type="text/css">
 		html, body{
@@ -18,22 +20,70 @@
 			background: lightgrey;
 		}
 		form {
-			text-align: center;
-			padding: 10px;
+			padding: 5px;
 		}
 		input[type=file]{
 			border: 1px solid black;
 		}
+		.btn{
+			box-shadow:inset 0px 1px 0px 0px #ffffff;
+			background:linear-gradient(to bottom, #ffffff 5%, #f6f6f6 100%);
+			background-color:#ffffff;
+			border-radius:6px;
+			border:1px solid #dcdcdc;
+			display:inline-block;
+			cursor:pointer;
+			color:#666666;
+			font-family:Arial;
+			font-size:13px;
+			font-weight:bold;
+			padding:6px 24px;
+			text-decoration:none;
+			text-shadow:0px 1px 0px #ffffff;
+		}
+		.btn:hover {
+			background:linear-gradient(to bottom, #f6f6f6 5%, #ffffff 100%);
+			background-color:#f6f6f6;
+		}
+		.btn:active {
+			position:relative;
+			top:1px;
+		}
+		table{
+			text-align: center;
+			width: 100%;
+		}
+
+		.gantt_task_line {
+				background-color: #7dd3ff;
+		}
+
+		.custom_row {
+			background: #e8eaeb;
+		}
+
 	</style>
 </head>
 
 <body>
-
-	<form id="mspImport" action="" method="POST" enctype="multipart/form-data">
-		<input type="file" class="custom-file-input" id="mspFile" name="file"
-			   accept=".mpp,.xml, text/xml, application/xml, application/vnd.ms-project, application/msproj, application/msproject, application/x-msproject, application/x-ms-project, application/x-dos_ms_project, application/mpp, zz-application/zz-winassoc-mpp"/>
-		<button id="mspImportBtn" type="submit">Carica</button>
-	</form>
+	<table>
+		<tr>
+			<td style="text-align: left;">
+				<form id="mspImport" action="" method="POST" enctype="multipart/form-data"><!--
+					<input type="file" id="mspFile" name="file"
+						accept=".mpp,.xml, text/xml, application/xml, application/vnd.ms-project, application/msproj, application/msproject, application/x-msproject, application/x-ms-project, application/x-dos_ms_project, application/mpp, zz-application/zz-winassoc-mpp"/>
+					<button class="btn" type="submit">Carica</button>-->
+				</form>
+		   </td>
+		   <td style="text-align: center;">
+				<div class="gantt_control">
+					<input  class="btn" type="button" value="Zoom Out" onclick="zoomIn()">
+					<input  class="btn" type="button" value="Zoom In" onclick="zoomOut()">
+					<button class="btn" onclick="toggleMode(this)">Zoom to Fit</button>
+				</div>
+			</td>
+		</tr>
+	</table>
 
 
 <div id="gantt_here" style='width:100%; height: calc(100vh - 42px);'></div>
@@ -42,9 +92,6 @@
 
 	gantt.config.order_branch = true;/*!*/
 	gantt.config.order_branch_free = true;/*!*/
-
-
-
 
 	var hourToStr = gantt.date.date_to_str("%H:%i");
 	var hourRangeFormat = function(step){
@@ -57,7 +104,7 @@
 			css: "gantt_container",
 			cols: [
 				{
-					width:400,
+					width:500,
 					min_width: 300,
 					rows:[
 						{view: "grid", scrollX: "gridScroll", scrollable: true, scrollY: "scrollVer"},
@@ -74,6 +121,10 @@
 				{view: "scrollbar", id: "scrollVer"}
 			]
 		};
+
+		gantt.templates.leftside_text = function (start, end, task) {
+		  return "<span style='font-weight: bold;'> "+Math.round(task.progress * 100)+"% </span>";
+		 };
 
 	gantt.config.min_column_width = 100;
 	var zoomConfig = {
@@ -121,21 +172,46 @@
 
 	gantt.ext.zoom.init(zoomConfig);
 
+	function zoomIn(){
+		gantt.ext.zoom.zoomIn();
+	}
+	function zoomOut(){
+		gantt.ext.zoom.zoomOut()
+	}
+
+
 	gantt.config.readonly = true;
 
 	gantt.config.columns =  [
-     {name:"text",       label:"Task name",  tree:true, width:300 },
+     {name:"text",       label:"Task name",  tree:true, width:400 },
      {name:"start_date", label:"Start time", align:"center" },
      {name:"duration",   label:"Duration",   align:"center", width:80 },
      {name:"progress",   label:"Progress",   align:"center", width:80 }
  ];
 
     gantt.plugins({
-        tooltip: true
+        tooltip: true,
+		marker: true
     });
 
+	var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
+	var markerId = gantt.addMarker({
+		start_date: new Date(),
+		css: "today",
+		text: "Today",
+		title: dateToStr( new Date())
+	});
+
+	//Templates
+gantt.templates.grid_row_class = gantt.templates.task_row_class = function (start, end, task) {
+		return "custom_row";
+	};
+gantt.templates.task_class = function (start, end, task) {
+			return "colorTask";
+	};
+
 	gantt.templates.tooltip_text = function(start,end,task){
-		return "<b>Task:</b> "+task.text+"<br/><b>Duration:</b> " + task.duration;
+		return "<b>Task:</b> "+task.text+"<br/><b>Duration:</b> " + task.duration +"<br/><b>Start Date:</b>"+ dateToStr(task.start_date);
 	};
 /*
 	gantt.attachEvent("onTaskDblClick", function(id,e){
@@ -245,5 +321,172 @@
 		if (click) { gantt.scrollTo(scroll_value, null);
 		}
 	});
+
+	function toggleMode(toggle) {
+		toggle.enabled = !toggle.enabled;
+		if (toggle.enabled) {
+			toggle.innerHTML = "Set default Scale";
+			//Saving previous scale state for future restore
+			saveConfig();
+			zoomToFit();
+		} else {
+
+			toggle.innerHTML = "Zoom to Fit";
+			//Restore previous scale state
+			restoreConfig();
+			gantt.render();
+		}
+	}
+
+	var cachedSettings = {};
+
+	function saveConfig() {
+		var config = gantt.config;
+		cachedSettings = {};
+		cachedSettings.scales = config.scales;
+		cachedSettings.start_date = config.start_date;
+		cachedSettings.end_date = config.end_date;
+	}
+
+	function restoreConfig() {
+		applyConfig(cachedSettings);
+	}
+
+	function applyConfig(config, dates) {
+
+		gantt.config.scales = config.scales;
+
+		if (dates && dates.start_date && dates.end_date) {
+			gantt.config.start_date = gantt.date.add(dates.start_date, -1, config.scales[0].subscale_unit);
+			gantt.config.end_date = gantt.date.add(gantt.date[config.scales[0].subscale_unit + "_start"](dates.end_date), 2, config.scales[0].subscale_unit);
+		} else {
+			gantt.config.start_date = gantt.config.end_date = null;
+		}
+	}
+
+
+	function zoomToFit() {
+		var project = gantt.getSubtaskDates(),
+			areaWidth = gantt.$task.offsetWidth;
+
+		for (var i = 0; i < scaleConfigs.length; i++) {
+			var columnCount = getUnitsBetween(project.start_date, project.end_date, scaleConfigs[i].scales[0].subscale_unit, scaleConfigs[i].scales[0].step);
+			if ((columnCount + 2) * gantt.config.min_column_width >= areaWidth) {
+				--i;
+				break;
+			}
+		}
+
+
+		if (i == scaleConfigs.length) {
+			i--;
+		}
+
+		applyConfig(scaleConfigs[i], project);
+		gantt.render();
+	}
+
+	// get number of columns in timeline
+	function getUnitsBetween(from, to, unit, step) {
+		var start = new Date(from),
+			end = new Date(to);
+		var units = 0;
+		while (start.valueOf() < end.valueOf()) {
+			units++;
+			start = gantt.date.add(start, step, unit);
+		}
+		return units;
+	}
+
+	//Setting available scales
+	var scaleConfigs = [
+		// decades
+		{
+			scales: [
+				{
+					subscale_unit: "year", unit: "year", step: 10, template: function (date) {
+						var dateToStr = gantt.date.date_to_str("%Y");
+						var endDate = gantt.date.add(gantt.date.add(date, 10, "year"), -1, "day");
+						return dateToStr(date) + " - " + dateToStr(endDate);
+					}
+				},
+				{
+					unit: "year", step: 100, template: function (date) {
+						var dateToStr = gantt.date.date_to_str("%Y");
+						var endDate = gantt.date.add(gantt.date.add(date, 100, "year"), -1, "day");
+						return dateToStr(date) + " - " + dateToStr(endDate);
+					}
+				}
+			]
+		},
+		// years
+		{
+			scales: [
+				{subscale_unit: "year", unit: "year", step: 1, date: "%Y"},
+				{
+					unit: "year", step: 5, template: function (date) {
+						var dateToStr = gantt.date.date_to_str("%Y");
+						var endDate = gantt.date.add(gantt.date.add(date, 5, "year"), -1, "day");
+						return dateToStr(date) + " - " + dateToStr(endDate);
+					}
+				}
+			]
+		},
+		// quarters
+		{
+			scales: [
+				{subscale_unit: "month", unit: "year", step: 3, format: "%Y"},
+				{
+					unit: "month", step: 3, template: function (date) {
+						var dateToStr = gantt.date.date_to_str("%M");
+						var endDate = gantt.date.add(gantt.date.add(date, 3, "month"), -1, "day");
+						return dateToStr(date) + " - " + dateToStr(endDate);
+					}
+				}
+			]
+		},
+		// months
+		{
+			scales: [
+				{subscale_unit: "month", unit: "year", step: 1, format: "%Y"},
+				{unit: "month", step: 1, format: "%M"}
+			]
+		},
+		// weeks
+		{
+			scales: [
+				{subscale_unit: "week", unit: "month", step: 1, date: "%F"},
+				{
+					unit: "week", step: 1, template: function (date) {
+						var dateToStr = gantt.date.date_to_str("%d %M");
+						var endDate = gantt.date.add(gantt.date.add(date, 1, "week"), -1, "day");
+						return dateToStr(date) + " - " + dateToStr(endDate);
+					}
+				}
+			]
+		},
+		// days
+		{
+			scales: [
+				{subscale_unit: "day", unit: "month", step: 1, format: "%F"},
+				{unit: "day", step: 1, format: "%j"}
+			]
+		},
+		// hours
+		{
+			scales: [
+				{subscale_unit: "hour", unit: "day", step: 1, format: "%j %M"},
+				{unit: "hour", step: 1, format: "%H:%i"}
+
+			]
+		},
+		// minutes
+		{
+			scales: [
+				{subscale_unit: "minute", unit: "hour", step: 1, format: "%H"},
+				{unit: "minute", step: 1, format: "%H:%i"}
+			]
+		}
+	];
 </script>
 </body>
