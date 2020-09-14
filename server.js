@@ -12,7 +12,7 @@ var app = express();
 var mysql = require('promise-mysql');
 
 var db = mysql.createPool({
-	host: '172.16.13.11',
+	host: 'localhost',
 	user: 'gantt',
 	password: 'gantt',
 	database: 'gantt'
@@ -74,16 +74,50 @@ router.get("/data/clear", function (req, res) {
 });
 
 
+
 // add new task
 router.post("/data/task", urlencodedParser, function (req, res) { // adds new task to database
 	var task = getTask(req.body);
 
-
+	//console.log(task.resource);
 	db.query("SELECT MAX(sortorder) AS maxOrder FROM gantt_tasks")
 		.then(function (result) {
 			var orderIndex = (result[0].maxOrder || 0) + 1;
-			return db.query("INSERT INTO gantt_tasks(id, text, start_date, duration, progress, parent, sortorder) VALUES (?,?,?,?,?,?,?)",
-				[task.id, task.text, task.start_date, task.duration, task.progress, task.parent, orderIndex]);
+
+			var h="";
+			var items=task.resource;
+			if(Array.isArray(items)){
+
+				
+				for(i=0; i<items.length; i++)
+				{
+
+					h+=items[i]+",";
+
+				}
+
+				h=h.substring(0, h.length-1);
+			}
+			else{
+				h=items;
+			}
+				
+			return db.query("SELECT Nome FROM gantt_resources where id IN ("+h+")" )
+				.then(function (result) {
+
+
+				var names="";
+				for(j=0; j<result.length; j++){
+					names+=result[j].Nome+", ";
+				}
+
+
+				return db.query("INSERT INTO gantt_tasks(id, text, start_date, duration, progress, parent, resource, sortorder) VALUES (?,?,?,?,?,?,?,?)",
+				[task.id, task.text, task.start_date, task.duration, task.progress, task.parent, names.substring(0,names.length-2), orderIndex]);
+					
+
+			});
+					
 		})
 		.then(function (result) {
 			sendResponse(res, "inserted", result.insertId);
@@ -207,7 +241,8 @@ function getTask(data) {
 		start_date: data.start_date.date("YYYY-MM-DD"),
 		duration: data.duration,
 		progress: data.progress || 0,
-		parent: data.parent
+		parent: data.parent,
+		resource: data['resource[]']
 	};
 }
 
@@ -231,4 +266,21 @@ function sendResponse(res, action, tid, error) {
 		result.tid = tid;
 
 	res.send(result);
+}
+
+
+
+function get_resource(data, callback) {
+
+	var sql = "SELECT Nome FROM gantt_resources where id="+data;
+
+	db.query(sql, function(err, results){
+		  if (err){ 
+			throw err;
+		  }
+		  //console.log(results[0].Nome); // good
+		  stuff_i_want = results[0].Nome;  // Scope is larger than function
+
+		  return callback(results[0].Nome);
+  });
 }
